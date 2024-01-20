@@ -10,9 +10,22 @@ dayjs.extend(relativeTime);
 
 import Image from "next/image";
 import { LoadingPage } from "~/components/loading";
+import { useState } from "react";
 
 const CreatePostWizard = () => {
   const { user } = useUser();
+
+  const [input, setInput] = useState<string>("");
+
+  const ctx = api.useContext();
+
+  const { mutate: createPost, isLoading: isPosting } =
+    api.post.create.useMutation({
+      onSuccess: () => {
+        setInput("");
+        void ctx.post.getAll.invalidate();
+      },
+    });
   // console.log(user);
 
   if (!user) return null;
@@ -29,7 +42,18 @@ const CreatePostWizard = () => {
       <input
         placeholder="Type an emoji...!"
         className="grow bg-transparent outline-none"
+        type="text"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        disabled={isPosting}
       ></input>
+      <button
+        onClick={() => {
+          createPost({ content: input });
+        }}
+      >
+        Post
+      </button>
     </div>
   );
 };
@@ -59,14 +83,14 @@ const PostView = (props: PostViewWithUser) => {
 
 const Feed = () => {
   const { data, isLoading: postsLoading } = api.post.getAll.useQuery();
-  
+
   if (postsLoading) return <LoadingPage />;
 
   if (!data) return <div>Something went wrong</div>;
 
   return (
     <div className="flex flex-col">
-      {[...data].map((fullProps) => (
+      {data.map((fullProps) => (
         <PostView key={fullProps.post.id} {...fullProps} />
       ))}
     </div>
