@@ -9,6 +9,7 @@ import relativeTime from "dayjs/plugin/relativeTime";
 dayjs.extend(relativeTime);
 
 import Image from "next/image";
+import { LoadingPage } from "~/components/loading";
 
 const CreatePostWizard = () => {
   const { user } = useUser();
@@ -50,24 +51,34 @@ const PostView = (props: PostViewWithUser) => {
           <span>{`@${user.name} `}</span>
           <span className="font-thin">{`  ·  ${dayjs(post.createdAt).fromNow()}`}</span>
         </div>
-        <span>{post.content}</span>
+        <span className="text-xl">{post.content}</span>
       </div>
+    </div>
+  );
+};
+
+const Feed = () => {
+  const { data, isLoading: postsLoading } = api.post.getAll.useQuery();
+  
+  if (postsLoading) return <LoadingPage />;
+
+  if (!data) return <div>Something went wrong</div>;
+
+  return (
+    <div className="flex flex-col">
+      {[...data].map((fullProps) => (
+        <PostView key={fullProps.post.id} {...fullProps} />
+      ))}
     </div>
   );
 };
 
 export default function Home() {
   // const hello = api.post.hello.useQuery({ text: "from tRPC" });
-  // const user = useUser();
-  const { data, isLoading } = api.post.getAll.useQuery();
+  const { user, isLoaded: userLoaded } = useUser();
+  api.post.getAll.useQuery();
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
-  if (!data) {
-    return <div>Something went wrong</div>;
-  }
+  if (!userLoaded) return <div />;
 
   return (
     <>
@@ -87,11 +98,12 @@ export default function Home() {
             <CreatePostWizard />
             <UserButton afterSignOutUrl="/" />
           </div>
-          <div className="flex flex-col">
+          {/* <div className="flex flex-col">
             {[...data].map((fullProps) => (
               <PostView key={fullProps.post.id} {...fullProps} />
             ))}
-          </div>
+          </div> */}
+          <Feed />
           {/* <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-8">
             <Link
               className="flex max-w-xs flex-col gap-4 rounded-xl bg-white/10 p-4 text-white hover:bg-white/20"
